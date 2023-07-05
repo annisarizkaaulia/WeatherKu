@@ -1,0 +1,86 @@
+{% extends "layout/templateadmin.html" %} {% block content %}
+<main id="main" class="main">
+  <div class="pagetitle">
+    <h1>Data Weather</h1>
+    <nav>
+      <ol class="breadcrumb">
+        <li class="breadcrumb-item">
+          <a href="{{url_for('datatable')}}">Data Weather</a>
+        </li>
+        <li class="breadcrumb-item">Data Table Weather</li>
+      </ol>
+    </nav>
+  </div>
+  <!-- End Page Title -->
+  <section class="section">
+    <div class="row">
+      <div class="col-lg-12">
+        <a class="btn btn-info" href="{{url_for('formdata')}}">
+          <i class="bi bi-clouds"></i> Form Weather
+        </a>
+        <div class="card">
+          <div class="card-body">
+            <h5 class="card-title">Table Data Weather</h5>
+            {% with messages = get_flashed_messages(with_categories=true) %} {%
+            if messages %} {% for category, message in messages %} {% if
+            category == "success" %}
+            <div class="alert alert-success">{{ message }}</div>
+            {% else: %}
+            <div class="alert alert-danger">{{ message }}</div>
+            {% endif %} {% endfor %} {% endif %} {% endwith %}
+            <!-- Table Data Weather -->
+            <table class="table datatable">
+              <thead>
+                <tr>
+                  <th>Action</th>
+                  <th>Tanggal</th>
+                  <th>Pukul</th>
+                  <th>Arah angin (˚)</th>
+                  <th>Kecepatan angin (KT)</th>
+                  <th>Jarak pandang (Km)</th>
+                  <th>Suhu (˚)</th>
+                  <th>Titik embun (˚)</th>
+                  <th>Tekanan udara (mb)</th>
+                  <th>cuaca</th>
+                </tr>
+              </thead>
+              <tbody>
+                {% for mc in data %}
+                <tr>
+                  <td class="mx-auto">
+                    <a href="/editcuaca/{{ mc[0] }}">
+                      <button class="btn btn-warning" type="button" name="edit">
+                        <i class="bi bi-pencil-square"></i>
+                      </button>
+                    </a>
+                    <button
+                      class="btn btn-danger"
+                      type="button"
+                      name="hapus"
+                      onclick="deletecuaca('{{ mc[0] }}')"
+                    >
+                      <i class="bi bi-trash"></i>
+                    </button>
+                  </td>
+                  <td>{{ mc[8] }}</td>
+                  <td>{{ mc[9] }}</td>
+                  <td>{{ mc[1] }}</td>
+                  <td>{{ mc[2] }}</td>
+                  <td>{{ mc[3] }}</td>
+                  <td>{{ mc[4] }}</td>
+                  <td>{{ mc[5] }}</td>
+                  <td>{{ mc[6] }}</td>
+                  <td>{{ mc[7] }}</td>
+                </tr>
+                {% endfor %}
+              </tbody>
+            </table>
+            <!-- End Table with stripped rows -->
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+</main>
+<!-- End #main -->
+{% endblock %}
