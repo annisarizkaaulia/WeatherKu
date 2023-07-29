@@ -6,7 +6,6 @@ import numpy as np
 import tensorflow as tf
 from tensorflow import keras
 import matplotlib.pyplot as plt
-# from tensorflow.keras.models import load_model
 
 
 app = Flask(__name__)
@@ -28,101 +27,6 @@ class_names = ["Cerah", "Berawan", "Hujan"]  # to convert class
 # Fungsi untuk memeriksa ekstensi file yang diunggah
 def allowed_file(filename):
     return '.' in filename and filename.rsplit('.', 1)[1].lower() in ALLOWED_EXTENSIONS
-
-
-# # Rute untuk mengunggah file
-# @app.route('/upload', methods=['GET', 'POST'])
-# def upload_file():
-#     if request.method == 'POST':
-#         # Periksa apakah file ada dalam request
-#         file = request.files['file']
-#         if file.filename == '':
-#             flash('No file part', 'error')
-#             return redirect(url_for('formdata'))
-#         # Periksa apakah file yang diunggah memiliki ekstensi yang diizinkan
-#         if file and allowed_file(file.filename):
-#             col_name = ['arah_angin', 'kecepatan_angin',
-#                         'jarak_pandang', 'suhu', 'titik_embun', 'tekanan_udara']
-#             df = pd.read_csv(file, names=col_name, header=None, sep=';')
-
-#             # Cek dan mengganti nilai nan dengan None
-#             df.replace({np.nan: None}, inplace=True)
-
-#             for i, row in df.iterrows():
-#                 # Memastikan tidak ada nilai nan sebelum menyimpan ke database
-#                 if any(pd.isnull(row)):
-#                     flash('Invalid data in the file', 'error')
-#                     return redirect(url_for('formdata'))
-
-#                 # Simpan hasil prediksi ke dalam database
-#                 cursor = mysql.connection.cursor()
-#                 cursor.execute("""INSERT INTO master_cuaca (arah_angin, kecepatan_angin, jarak_pandang, suhu, titik_embun, tekanan_udara)
-#                 VALUES (%s,%s,%s,%s,%s,%s)""",
-#                                (row.arah_angin, row.kecepatan_angin, row.jarak_pandang, row.suhu, row.titik_embun, row.tekanan_udara))
-#                 mysql.connection.commit()
-#                 cursor.close()
-
-#             flash('File uploaded successfully', 'success')
-#             return redirect(url_for('datatable'))
-#         else:
-#             flash('Invalid file extension', 'error')
-#             return redirect(url_for('formdata'))
-#     return render_template("pages/datatable.html")
-
-# Rute untuk mengunggah file
-@app.route('/upload', methods=['GET', 'POST'])
-def upload_file():
-    if request.method == 'POST':
-        # Periksa apakah file ada dalam request
-        file = request.files['file']
-        if file.filename == '':
-            flash('No file part', 'error')
-            return redirect(url_for('formdata'))
-        # Periksa apakah file yang diunggah memiliki ekstensi yang diizinkan
-        if file and allowed_file(file.filename):
-            col_name = ['arah_angin', 'kecepatan_angin',
-                        'jarak_pandang', 'suhu', 'titik_embun', 'tekanan_udara']
-            df = pd.read_csv(file, names=col_name, header=0,
-                             sep=';', skipinitialspace=True)
-
-            # Cek dan mengganti nilai nan dengan None
-            df.replace({np.nan: None}, inplace=True)
-
-            # Load the trained model
-            model = tf.keras.models.load_model("modelweather.h5")  # model
-            class_names = ["Cerah", "Berawan", "Hujan"]
-
-            for i, row in df.iterrows():
-                # Memastikan tidak ada nilai nan sebelum menyimpan ke database
-                if any(pd.isnull(row)):
-                    flash('Invalid data in the file', 'error')
-                    return redirect(url_for('formdata'))
-                row = row.astype(float)
-                # Preprocess the input data
-                input_data = row.values.reshape(1, -1)
-
-                # Predict using the loaded model
-                prediction = model.predict(input_data)
-                predicted_class_index = np.argmax(prediction)
-                predicted_class = class_names[predicted_class_index]
-
-                # Insert the predicted class into the database
-                cursor = mysql.connection.cursor()
-                cursor.execute(
-                    """INSERT INTO master_cuaca (arah_angin, kecepatan_angin, jarak_pandang, suhu, titik_embun, tekanan_udara, cuaca) 
-                    VALUES (%s,%s,%s,%s,%s,%s,%s)""",
-                    (row.arah_angin, row.kecepatan_angin, row.jarak_pandang,
-                     row.suhu, row.titik_embun, row.tekanan_udara, predicted_class)
-                )
-                mysql.connection.commit()
-                cursor.close()
-
-            flash('File uploaded successfully', 'success')
-            return redirect(url_for('datatable'))
-        else:
-            flash('Invalid file extension', 'error')
-            return redirect(url_for('formdata'))
-    return render_template("pages/datatable.html")
 
 
 # PAGE USER
@@ -208,24 +112,36 @@ def home():
         # Query data dari database
         cursor = mysql.connection.cursor()
         cursor.execute(
-            "SELECT cuaca, COUNT(*) as jumlah FROM master_cuaca GROUP BY cuaca")
+            "SELECT cuaca_prediksi, COUNT(*) as jumlah FROM master_cuaca GROUP BY cuaca_prediksi")
         data = cursor.fetchall()
+        # print(data)
+        # label = []
+        # value = []
 
+        # for item in data:
+        #     label.append(item[0])
+        #     value.append(item[1])
+
+        # page home
         # Memisahkan label dan nilai dari hasil query
         labels = [row[0] for row in data]
         values = [row[1] for row in data]
 
         # Membuat grafik menggunakan Matplotlib
-        # plt.pie(labels, values)
-        # plt.xlabel('cuaca')
-        # plt.ylabel('jumlah')
-        plt.pie(values, labels=labels)
-        plt.title("Jumlah Data Berdasarkan Cuaca")
-        # plt.title('Data Chart')
-
+        # bar
+        plt.bar(labels, values)
+        plt.xlabel('cuaca')
+        plt.ylabel('jumlah')
+        plt.title('Data Chart')
         # Menyimpan grafik sebagai file gambar
+        # plt.savefig('static/img/bar.png')
+
+        # # pie
+        # plt.pie(values, labels=labels)
+        # plt.title("Jumlah Data Berdasarkan Cuaca")
+        # # Menyimpan grafik sebagai file gambar
         # plt.savefig('static/img/pie.png')
-        # page home
+
         return render_template("pages/home.html")
     else:
         return redirect(url_for('index'))
@@ -237,11 +153,23 @@ def datatable():
     if 'username' in session:
         # get data form
         cursor = mysql.connection.cursor()
-        cursor.execute("SELECT * FROM master_cuaca")
+        # cursor.execute("SELECT * FROM master_cuaca ORDER BY id_cuaca DESC")
+        cursor.execute(
+            """SELECT mc.*, mca.cuaca_aktual 
+            FROM master_cuaca mc 
+            JOIN master_cuacaaktual mca 
+            ON mca.id_cuaca=mc.id_cuaca""")
         data = cursor.fetchall()
         cursor.close()
         # page datatable
-        return render_template("pages/datatable.html", data=data)
+        # Calculate the number of correct predictions
+        correct_predictions = sum(1 for row in data if row[1] == row[2])
+
+        # Calculate the total number of data points
+        total_data = len(data)
+        # Calculate the accuracy
+        accuracy = correct_predictions / total_data
+        return render_template("pages/datatable.html", data=data, accuracy=accuracy)
     else:
         return redirect(url_for('index'))
 
@@ -268,6 +196,63 @@ def formdata():
     else:
         return redirect(url_for('index'))
 
+# Rute untuk mengunggah file
+
+
+@app.route('/upload', methods=['GET', 'POST'])
+def upload_file():
+    if request.method == 'POST':
+        # Periksa apakah file ada dalam request
+        file = request.files['file']
+        if file.filename == '':
+            flash('No file part', 'error')
+            return redirect(url_for('formdata'))
+        # Periksa apakah file yang diunggah memiliki ekstensi yang diizinkan
+        if file and allowed_file(file.filename):
+            col_name = ['arah_angin', 'kecepatan_angin',
+                        'jarak_pandang', 'suhu', 'titik_embun', 'tekanan_udara']
+            df = pd.read_csv(file, names=col_name, header=0,
+                             sep=';', skipinitialspace=True)
+
+            # Cek dan mengganti nilai nan dengan None
+            df.replace({np.nan: None}, inplace=True)
+
+            # Load the trained model
+            model = tf.keras.models.load_model("modelweather.h5")  # model
+            class_names = ["Cerah", "Berawan", "Hujan"]
+
+            for i, row in df.iterrows():
+                # Memastikan tidak ada nilai nan sebelum menyimpan ke database
+                if any(pd.isnull(row)):
+                    flash('Invalid data in the file', 'error')
+                    return redirect(url_for('formdata'))
+                row = row.astype(float)
+                # Preprocess the input data
+                input_data = row.values.reshape(1, -1)
+
+                # Predict using the loaded model
+                prediction = model.predict(input_data)
+                predicted_class_index = np.argmax(prediction)
+                predicted_class = class_names[predicted_class_index]
+
+                # Insert the predicted class into the database
+                cursor = mysql.connection.cursor()
+                cursor.execute(
+                    """INSERT INTO master_cuaca (arah_angin, kecepatan_angin, jarak_pandang, suhu, titik_embun, tekanan_udara, cuaca_prediksi) 
+                    VALUES (%s,%s,%s,%s,%s,%s,%s)""",
+                    (row.arah_angin, row.kecepatan_angin, row.jarak_pandang,
+                     row.suhu, row.titik_embun, row.tekanan_udara, predicted_class)
+                )
+                mysql.connection.commit()
+                cursor.close()
+
+            flash('File uploaded successfully', 'success')
+            return redirect(url_for('datatable'))
+        else:
+            flash('Invalid file extension', 'error')
+            return redirect(url_for('formdata'))
+    return render_template("pages/datatable.html")
+
 
 @app.route("/editcuaca/<int:id_cuaca>", methods=['GET'])
 def editcuaca(id_cuaca):
@@ -287,15 +272,29 @@ def editcuaca(id_cuaca):
 @ app.route("/updatedata/<int:id_cuaca>", methods=['POST'])
 def updatedata(id_cuaca):
     if 'username' in session:
-        # insert data form
+        # update data form
         tanggal = request.form['tanggal']
         pukul = request.form['pukul']
-        arah_angin = float(request.form['arah_angin'])
-        kecepatan_angin = float(request.form['kecepatan_angin'])
-        jarak_pandang = float(request.form['jarak_pandang'])
-        suhu = float(request.form['suhu'])
-        titik_embun = float(request.form['titik_embun'])
-        tekanan_udara = float(request.form['tekanan_udara'])
+        arah_angin = request.form['arah_angin']
+        kecepatan_angin = request.form['kecepatan_angin']
+        jarak_pandang = request.form['jarak_pandang']
+        suhu = request.form['suhu']
+        titik_embun = request.form['titik_embun']
+        tekanan_udara = request.form['tekanan_udara']
+
+        # Validate input
+        if not all(value.replace('.', '', 1).isdigit() for value in [arah_angin, kecepatan_angin, jarak_pandang, suhu, titik_embun, tekanan_udara]):
+            flash('Invalid input! Please enter numeric/decimal values.', 'error')
+            return render_template("pages/formdata.html", tanggal=tanggal, pukul=pukul, arah_angin=arah_angin,
+                                   kecepatan_angin=kecepatan_angin, jarak_pandang=jarak_pandang,
+                                   suhu=suhu, titik_embun=titik_embun, tekanan_udara=tekanan_udara)
+        arah_angin = float(arah_angin)
+        kecepatan_angin = float(kecepatan_angin)
+        jarak_pandang = float(jarak_pandang)
+        suhu = float(suhu)
+        titik_embun = float(titik_embun)
+        tekanan_udara = float(tekanan_udara)
+
         data = {'arah_angin': [arah_angin],
                 'kecepatan_angin': [kecepatan_angin],
                 'jarak_pandang': [jarak_pandang],
@@ -311,7 +310,7 @@ def updatedata(id_cuaca):
         cursor = mysql.connection.cursor()
         cursor.execute(
             """UPDATE master_cuaca SET 
-            tanggal=%s, pukul=%s, arah_angin=%s, kecepatan_angin=%s, jarak_pandang=%s, suhu=%s, titik_embun=%s, tekanan_udara=%s, cuaca=%s WHERE id_cuaca = %s""",
+            tanggal=%s, pukul=%s, arah_angin=%s, kecepatan_angin=%s, jarak_pandang=%s, suhu=%s, titik_embun=%s, tekanan_udara=%s, cuaca_prediksi=%s WHERE id_cuaca = %s""",
             (tanggal, pukul, arah_angin, kecepatan_angin, jarak_pandang, suhu, titik_embun, tekanan_udara, cuaca, id_cuaca))
         mysql.connection.commit()
         cursor.close()
@@ -330,19 +329,32 @@ def predict():
         # insert data form
         tanggal = request.form['tanggal']
         pukul = request.form['pukul']
-        arah_angin = float(request.form['arah_angin'])
-        kecepatan_angin = float(request.form['kecepatan_angin'])
-        jarak_pandang = float(request.form['jarak_pandang'])
-        suhu = float(request.form['suhu'])
-        titik_embun = float(request.form['titik_embun'])
-        tekanan_udara = float(request.form['tekanan_udara'])
+        arah_angin = request.form['arah_angin']
+        kecepatan_angin = request.form['kecepatan_angin']
+        jarak_pandang = request.form['jarak_pandang']
+        suhu = request.form['suhu']
+        titik_embun = request.form['titik_embun']
+        tekanan_udara = request.form['tekanan_udara']
+
+        # Validate input
+        if not all(value.replace('.', '', 1).isdigit() for value in [arah_angin, kecepatan_angin, jarak_pandang, suhu, titik_embun, tekanan_udara]):
+            flash('Invalid input! Please enter numeric/decimal values', 'error')
+            return render_template("pages/formdata.html", tanggal=tanggal, pukul=pukul, arah_angin=arah_angin,
+                                   kecepatan_angin=kecepatan_angin, jarak_pandang=jarak_pandang,
+                                   suhu=suhu, titik_embun=titik_embun, tekanan_udara=tekanan_udara)
+        arah_angin = float(arah_angin)
+        kecepatan_angin = float(kecepatan_angin)
+        jarak_pandang = float(jarak_pandang)
+        suhu = float(suhu)
+        titik_embun = float(titik_embun)
+        tekanan_udara = float(tekanan_udara)
+
         data = {'arah_angin': [arah_angin],
                 'kecepatan_angin': [kecepatan_angin],
                 'jarak_pandang': [jarak_pandang],
                 'suhu': [suhu],
                 'titik_embun': [titik_embun],
                 'tekanan_udara': [tekanan_udara]}
-
         df = pd.DataFrame(data)
         prediction = model.predict(df)
         predicted_index = np.argmax(prediction)
@@ -352,13 +364,14 @@ def predict():
         cursor.execute(
             """INSERT INTO
             master_cuaca (tanggal, pukul, arah_angin, kecepatan_angin, jarak_pandang,
-                        suhu, titik_embun, tekanan_udara, cuaca)
+                        suhu, titik_embun, tekanan_udara, cuaca_prediksi)
             VALUES (%s,%s,%s,%s,%s,%s,%s,%s,%s)""",
             (tanggal, pukul, arah_angin, kecepatan_angin, jarak_pandang, suhu, titik_embun, tekanan_udara, cuaca))
         # db.commit()
         mysql.connection.commit()
         cursor.close()
         flash('Data has been saved successfully', 'success')
+        # accuracy = calculate_accuracy(predicted_index, df)
         # page formdata predict
         return render_template("pages/formdata.html", cuaca=cuaca, tanggal=tanggal, pukul=pukul, arah_angin=arah_angin,
                                kecepatan_angin=kecepatan_angin, jarak_pandang=jarak_pandang,
